@@ -2,7 +2,7 @@ import { Controller, Get, Post, Query, Body } from '@nestjs/common'
 import { InvoicesService } from './invoices.service'
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator'
 import { Roles } from '../../common/decorators/roles.decorator'
-import { UserRole } from '@clinic/shared'
+import { UserRole } from '../../common/types'
 
 @Controller('invoices')
 export class InvoicesController {

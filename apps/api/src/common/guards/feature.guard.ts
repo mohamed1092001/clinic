@@ -1,7 +1,7 @@
 import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
 import { FEATURE_KEY } from '../decorators/feature.decorator'
-import { PLAN_FEATURES, Tier } from '@clinic/shared'
+import { PLAN_FEATURES, Tier } from '../types'
 import { PrismaService } from '../../prisma/prisma.service'
 
 @Injectable()

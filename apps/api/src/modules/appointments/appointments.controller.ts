@@ -2,7 +2,7 @@ import { Controller, Get, Post, Patch, Delete, Body, Param, Query } from '@nestj
 import { AppointmentsService } from './appointments.service'
 import { CurrentUser, JwtUser } from '../../common/decorators/current-user.decorator'
 import { Roles } from '../../common/decorators/roles.decorator'
-import { UserRole } from '@clinic/shared'
+import { UserRole } from '../../common/types'
 
 @Controller('appointments')
 export class AppointmentsController {
