@@ -1,0 +1,391 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ==================== Clinic (Tenant) ====================
+model Clinic {
+  id              String   @id @default(cuid())
+  nameArabic      String
+  nameEnglish     String?
+  slug            String   @unique
+  logo            String?
+  phone           String
+  email           String?
+  address         String
+  licenseNumber   String?
+  timezone        String   @default("Africa/Cairo")
+  workingDays     Json     @default("[]")
+  isActive        Boolean  @default(true)
+
+  subscriptionTier    Tier        @default(STARTER)
+  trialEndsAt         DateTime?
+  isTrial             Boolean     @default(true)
+  subscriptionStatus  SubStatus   @default(TRIAL)
+
+  primaryColor    String?
+  secondaryColor  String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users            User[]
+  patients         Patient[]
+  appointments     Appointment[]
+  services         Service[]
+  expenses         Expense[]
+  subscriptions    Subscription[]
+  auditLogs        AuditLog[]
+  medicalRecords   MedicalRecord[]
+  invoices         Invoice[]
+}
+
+enum Tier { STARTER PROFESSIONAL PREMIUM }
+enum SubStatus { TRIAL ACTIVE EXPIRED CANCELLED PAST_DUE }
+
+// ==================== Users ====================
+model User {
+  id            String   @id @default(cuid())
+  clinicId      String
+  name          String
+  email         String   @unique
+  phone         String?
+  passwordHash  String
+  role          Role     @default(RECEPTIONIST)
+  isActive      Boolean  @default(true)
+
+  twoFactorEnabled Boolean @default(false)
+  twoFactorSecret  String?
+
+  lastLoginAt   DateTime?
+  loginAttempts Int      @default(0)
+  lockedUntil   DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic       Clinic            @relation(fields: [clinicId], references: [id])
+  appointments DoctorAppointments[] @relation("doctor")
+  createdAppointments CreatedAppointments[] @relation("createdBy")
+  auditLogs    AuditLog[]
+  invoices     Invoice[]         @relation("createdBy")
+
+  @@unique([clinicId, email])
+}
+
+enum Role { ADMIN DOCTOR RECEPTIONIST ACCOUNTANT }
+
+// ==================== Patients ====================
+model Patient {
+  id           String   @id @default(cuid())
+  clinicId     String
+  fileNumber   Int
+  name         String
+  phone        String
+  secondPhone  String?
+  age          Int?
+  gender       Gender?
+  address      String?
+  email        String?
+  occupation   String?
+
+  patientType  PatientType @default(NEW)
+
+  lastVisitAt  DateTime?
+  totalVisits  Int         @default(0)
+
+  notes        String?
+  allergies    String?
+  bloodType    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic         Clinic          @relation(fields: [clinicId], references: [id])
+  appointments   Appointment[]
+  medicalRecords MedicalRecord[]
+  invoices       Invoice[]
+
+  @@unique([clinicId, fileNumber])
+  @@unique([clinicId, phone])
+  @@index([clinicId, name])
+}
+
+enum Gender { MALE FEMALE }
+enum PatientType { NEW FOLLOW_UP EMERGENCY }
+
+// ==================== Appointments ====================
+model Appointment {
+  id            String   @id @default(cuid())
+  clinicId      String
+  patientId     String
+  doctorId      String
+  createdById   String
+
+  date          DateTime
+  startTime     DateTime
+  endTime       DateTime
+
+  status        AppStatus @default(CONFIRMED)
+  source        BookSource @default(CLINIC)
+
+  cancelReason  String?
+  notes         String?
+
+  fee           Float     @default(0)
+  discount      Float     @default(0)
+  discountType  DiscountType?
+  total         Float     @default(0)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic             Clinic                @relation(fields: [clinicId], references: [id])
+  patient            Patient               @relation(fields: [patientId], references: [id])
+  doctor             User                  @relation("doctor", fields: [doctorId], references: [id])
+  createdBy          User                  @relation("createdBy", fields: [createdById], references: [id])
+  invoice            Invoice?
+  appointmentServices AppointmentService[]
+  medicalRecords     MedicalRecord[]
+
+  @@index([clinicId, date])
+  @@index([doctorId, date])
+  @@index([patientId])
+}
+
+enum AppStatus { CONFIRMED CANCELLED COMPLETED NO_SHOW }
+enum BookSource { CLINIC ONLINE PHONE }
+enum DiscountType { PERCENTAGE FIXED }
+
+// ==================== Medical Records (Professional+) ====================
+model MedicalRecord {
+  id            String   @id @default(cuid())
+  clinicId      String
+  patientId     String
+  appointmentId String?
+  doctorId      String
+
+  diagnosis     String?
+  prescriptions String?
+  notes         String?
+  vitalSigns    Json?
+
+  attachments   Json?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic      Clinic      @relation(fields: [clinicId], references: [id])
+  patient     Patient     @relation(fields: [patientId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  doctor      User        @relation(fields: [doctorId], references: [id])
+
+  @@index([clinicId, patientId])
+}
+
+// ==================== Services ====================
+model Service {
+  id          String   @id @default(cuid())
+  clinicId    String
+  name        String
+  price       Float
+  description String?
+  isActive    Boolean  @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic              Clinic                @relation(fields: [clinicId], references: [id])
+  appointmentServices AppointmentService[]
+  invoiceServices     InvoiceService[]
+
+  @@unique([clinicId, name])
+}
+
+model AppointmentService {
+  id            String @id @default(cuid())
+  appointmentId String
+  serviceId     String
+  quantity      Int    @default(1)
+  priceAtTime   Float
+  subtotal      Float
+
+  appointment Appointment @relation(fields: [appointmentId], references: [id])
+  service     Service     @relation(fields: [serviceId], references: [id])
+
+  @@unique([appointmentId, serviceId])
+}
+
+// ==================== Invoices ====================
+model Invoice {
+  id            String   @id @default(cuid())
+  clinicId      String
+  patientId     String
+  appointmentId String?
+  createdById   String
+
+  invoiceNumber Int      @default(autoincrement())
+
+  amount        Float
+  discount      Float     @default(0)
+  discountType  DiscountType?
+  paidAmount    Float     @default(0)
+  status        InvStatus @default(PENDING)
+  paymentMethod PayMethod?
+
+  isClosed      Boolean   @default(false)
+  closedAt      DateTime?
+  closedById    String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic      Clinic    @relation(fields: [clinicId], references: [id])
+  patient     Patient   @relation(fields: [patientId], references: [id])
+  appointment Appointment? @relation(fields: [appointmentId], references: [id])
+  createdBy   User      @relation("createdBy", fields: [createdById], references: [id])
+  services    InvoiceService[]
+
+  @@index([clinicId, createdAt])
+}
+
+enum InvStatus { PENDING PAID PARTIAL CANCELLED }
+enum PayMethod { CASH CARD WALLET TRANSFER }
+
+model InvoiceService {
+  id        String @id @default(cuid())
+  invoiceId String
+  serviceId String
+  quantity  Int    @default(1)
+  priceAtTime Float
+  subtotal  Float
+
+  invoice Invoice @relation(fields: [invoiceId], references: [id])
+  service Service @relation(fields: [serviceId], references: [id])
+
+  @@unique([invoiceId, serviceId])
+}
+
+// ==================== Expenses (Premium) ====================
+model Expense {
+  id          String   @id @default(cuid())
+  clinicId    String
+  category    ExpCat
+  amount      Float
+  description String
+  receiptUrl  String?
+  date        DateTime
+  createdById String
+
+  createdAt DateTime @default(now())
+
+  clinic    Clinic @relation(fields: [clinicId], references: [id])
+  createdBy User   @relation(fields: [createdById], references: [id])
+
+  @@index([clinicId, date])
+}
+
+enum ExpCat {
+  RENT SALES_WAGES ELECTRICITY WATER INTERNET SUPPLIES MAINTENANCE MARKETING OTHER
+}
+
+// ==================== Subscriptions ====================
+model Subscription {
+  id               String    @id @default(cuid())
+  clinicId         String
+  tier             Tier      @default(STARTER)
+  startDate        DateTime
+  endDate          DateTime
+  amount           Float
+  status           SubStatus @default(ACTIVE)
+  isAnnual         Boolean   @default(false)
+  autoRenew        Boolean   @default(true)
+
+  hasLandingPage   Boolean   @default(false)
+  hasPremiumSupport Boolean  @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic   Clinic   @relation(fields: [clinicId], references: [id])
+  payments Payment[]
+
+  @@index([clinicId, status])
+}
+
+model Payment {
+  id              String    @id @default(cuid())
+  subscriptionId  String
+  clinicId        String
+  amount          Float
+  paymentMethod   PayMethod
+  transactionId   String?
+  status          PayStatus @default(PENDING)
+  paidAt          DateTime?
+
+  createdAt DateTime @default(now())
+
+  subscription Subscription @relation(fields: [subscriptionId], references: [id])
+  clinic      Clinic       @relation(fields: [clinicId], references: [id])
+}
+
+enum PayStatus { PENDING COMPLETED FAILED REFUNDED }
+
+// ==================== Audit Log ====================
+model AuditLog {
+  id        String   @id @default(cuid())
+  clinicId  String
+  userId    String
+  action    String
+  entity    String
+  entityId  String?
+  oldValue  Json?
+  newValue  Json?
+  ipAddress String?
+  userAgent String?
+
+  createdAt DateTime @default(now())
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([clinicId, createdAt])
+  @@index([clinicId, entity])
+}
+
+// ==================== Landing Page ====================
+model LandingPage {
+  id        String   @id @default(cuid())
+  clinicId  String   @unique
+  slug      String   @unique
+
+  title     String?
+  subtitle  String?
+  about     String?
+  doctorName String?
+  doctorBio String?
+  specialties String?
+  phone     String?
+  address   String?
+  lat       Float?
+  lng       Float?
+
+  logo      String?
+  coverImage String?
+  gallery   Json?
+
+  seoTitle       String?
+  seoDescription String?
+
+  isPublished Boolean  @default(false)
+  publishedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  clinic Clinic @relation(fields: [clinicId], references: [id])
+}

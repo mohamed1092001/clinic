@@ -1,0 +1,81 @@
+import { Tier } from '../types'
+
+export const FEATURES = {
+  PATIENT_MANAGEMENT: 'patient_management',
+  APPOINTMENT_MANAGEMENT: 'appointment_management',
+  DAILY_INCOME: 'daily_income',
+  BASIC_REPORT: 'basic_report',
+  MEDICAL_RECORDS: 'medical_records',
+  MONTHLY_REPORTS: 'monthly_reports',
+  MULTI_USER: 'multi_user',
+  ROLE_PERMISSIONS: 'role_permissions',
+  FILE_UPLOAD: 'file_upload',
+  ONLINE_BOOKING: 'online_booking',
+  EXPORT_REPORTS: 'export_reports',
+  EXPENSES: 'expenses',
+  PROFIT_LOSS: 'profit_loss',
+  AUTO_BACKUP: 'auto_backup',
+  CUSTOMIZATION: 'customization',
+  PREMIUM_SUPPORT: 'premium_support',
+  LANDING_PAGE: 'landing_page',
+  ADVANCED_STATS: 'advanced_stats',
+} as const
+
+export const PLAN_FEATURES: Record<Tier, readonly string[]> = {
+  [Tier.STARTER]: [
+    FEATURES.PATIENT_MANAGEMENT,
+    FEATURES.APPOINTMENT_MANAGEMENT,
+    FEATURES.DAILY_INCOME,
+    FEATURES.BASIC_REPORT,
+  ],
+  [Tier.PROFESSIONAL]: [
+    FEATURES.PATIENT_MANAGEMENT,
+    FEATURES.APPOINTMENT_MANAGEMENT,
+    FEATURES.DAILY_INCOME,
+    FEATURES.BASIC_REPORT,
+    FEATURES.MEDICAL_RECORDS,
+    FEATURES.MONTHLY_REPORTS,
+    FEATURES.MULTI_USER,
+    FEATURES.ROLE_PERMISSIONS,
+    FEATURES.FILE_UPLOAD,
+    FEATURES.ONLINE_BOOKING,
+    FEATURES.EXPORT_REPORTS,
+  ],
+  [Tier.PREMIUM]: [
+    FEATURES.PATIENT_MANAGEMENT,
+    FEATURES.APPOINTMENT_MANAGEMENT,
+    FEATURES.DAILY_INCOME,
+    FEATURES.BASIC_REPORT,
+    FEATURES.MEDICAL_RECORDS,
+    FEATURES.MONTHLY_REPORTS,
+    FEATURES.MULTI_USER,
+    FEATURES.ROLE_PERMISSIONS,
+    FEATURES.FILE_UPLOAD,
+    FEATURES.ONLINE_BOOKING,
+    FEATURES.EXPORT_REPORTS,
+    FEATURES.EXPENSES,
+    FEATURES.PROFIT_LOSS,
+    FEATURES.AUTO_BACKUP,
+    FEATURES.CUSTOMIZATION,
+    FEATURES.PREMIUM_SUPPORT,
+    FEATURES.LANDING_PAGE,
+    FEATURES.ADVANCED_STATS,
+  ],
+}
+
+export const PLAN_PRICES: Record<Tier, { min: number; max: number }> = {
+  [Tier.STARTER]: { min: 500, max: 500 },
+  [Tier.PROFESSIONAL]: { min: 900, max: 1200 },
+  [Tier.PREMIUM]: { min: 1800, max: 2200 },
+}
+
+export const TRIAL_DAYS = 7
+export const TRIAL_MAX_PATIENTS = 20
+export const PROFESSIONAL_MAX_USERS = 5
+
+export const ROLES_HIERARCHY: Record<string, number> = {
+  ADMIN: 4,
+  DOCTOR: 3,
+  ACCOUNTANT: 2,
+  RECEPTIONIST: 1,
+}
